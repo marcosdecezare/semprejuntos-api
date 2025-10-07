@@ -1,22 +1,46 @@
-package com.semprejuntos.api.repositories;
+package com.sempremjuntos.api.repositories;
 
-import com.semprejuntos.api.entities.DeviceStatus;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import com.sempremjuntos.api.entities.DeviceStatusDTO;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Optional;
+
 @Repository
-public interface DeviceStatusRepository extends JpaRepository<DeviceStatus, Long> {
+public class DeviceStatusRepository {
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
-    @Query(value = "SELECT ds.id, ds.device_id, ds.battery_level, ds.gsm_signal, ds.last_update " +
-            "FROM semprejuntos.device_status ds " +
-            "JOIN semprejuntos.devices d ON d.id = ds.device_id " +
-            "WHERE d.imei = :imei " +
-            "ORDER BY ds.last_update DESC " +
-            "LIMIT 1",
-            nativeQuery = true)
-    DeviceStatus findLatestByImei(String imei);
+    public Optional<DeviceStatusDTO> findLatestByImei(String imei) {
+        String sql = """
+            SELECT 
+                ds.device_id,
+                ds.battery_level,
+                ds.gsm_signal,
+                ds.last_update
+            FROM semprejuntos.device_status ds
+            WHERE ds.device_id = (
+                SELECT d.id FROM semprejuntos.devices d WHERE d.imei = ?
+            )
+            ORDER BY ds.last_update DESC
+            LIMIT 1
+        """;
 
+        return jdbcTemplate.query(sql, new Object[]{imei}, this::mapRow)
+                .stream()
+                .findFirst();
+    }
 
+    private DeviceStatusDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
+        return new DeviceStatusDTO(
+                rs.getInt("device_id"),
+                rs.getInt("battery_level"),
+                rs.getInt("gsm_signal"),
+                rs.getTimestamp("last_update").toLocalDateTime()
+        );
+    }
 }

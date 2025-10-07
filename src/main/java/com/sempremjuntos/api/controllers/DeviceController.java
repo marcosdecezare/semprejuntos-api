@@ -1,9 +1,11 @@
-package com.semprejuntos.api.controllers;
+package com.sempremjuntos.api.controllers;
 
-import com.semprejuntos.api.entities.DeviceStatus;
-import com.semprejuntos.api.services.DeviceStatusService;
+import com.sempremjuntos.api.entities.DeviceStatusDTO;
+import com.sempremjuntos.api.services.DeviceStatusService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/devices")
@@ -13,11 +15,7 @@ public class DeviceController {
     private DeviceStatusService deviceStatusService;
 
     @GetMapping("/{imei}/status")
-    public DeviceStatus getDeviceStatus(@PathVariable String imei) {
-        DeviceStatus status = deviceStatusService.getLatestStatusByImei(imei);
-        if (status == null) {
-            throw new RuntimeException("Dispositivo não encontrado: " + imei);
-        }
-        return status;
+    public Optional<DeviceStatusDTO> getDeviceStatus(@PathVariable String imei) {
+        return deviceStatusService.getLatestStatus(imei);
     }
 }

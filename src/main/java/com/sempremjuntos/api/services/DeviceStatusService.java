@@ -1,9 +1,11 @@
-package com.semprejuntos.api.services;
+package com.sempremjuntos.api.services;
 
-import com.semprejuntos.api.entities.DeviceStatus;
-import com.semprejuntos.api.repositories.DeviceStatusRepository;
+import com.sempremjuntos.api.entities.DeviceStatusDTO;
+import com.sempremjuntos.api.repositories.DeviceStatusRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 @Service
 public class DeviceStatusService {
@@ -11,7 +13,7 @@ public class DeviceStatusService {
     @Autowired
     private DeviceStatusRepository repository;
 
-    public DeviceStatus getLatestStatusByImei(String imei) {
+    public Optional<DeviceStatusDTO> getLatestStatus(String imei) {
         return repository.findLatestByImei(imei);
     }
 }

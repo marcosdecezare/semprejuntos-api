@@ -1,11 +1,10 @@
-package com.semprejuntos.api;
+package com.sempremjuntos.api;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class SempreJuntosApiApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(SempreJuntosApiApplication.class, args);
     }
