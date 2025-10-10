@@ -16,12 +16,14 @@ public class UserRepository {
     private JdbcTemplate jdbcTemplate;
 
     public Optional<User> findByEmail(String email) {
-        String sql = "SELECT id, full_name, email, password_hash, role, created_at FROM semprejuntos.users WHERE email = ?";
+        String sql = "SELECT id, full_name, email, password_hash, phone_number, role, created_at " +
+                "FROM semprejuntos.users WHERE email = ?";
         return jdbcTemplate.query(sql, new Object[]{email}, this::mapRow).stream().findFirst();
     }
 
     public void save(String fullName, String email, String passwordHash) {
-        String sql = "INSERT INTO semprejuntos.users (full_name, email, password_hash, role, created_at) VALUES (?, ?, ?, 'USER', NOW())";
+        String sql = "INSERT INTO semprejuntos.users (full_name, email, password_hash, role, created_at) " +
+                "VALUES (?, ?, ?, 'USER', NOW())";
         jdbcTemplate.update(sql, fullName, email, passwordHash);
     }
 
@@ -32,7 +34,8 @@ public class UserRepository {
                 rs.getString("email"),
                 rs.getString("password_hash"),
                 rs.getString("role"),
-                rs.getTimestamp("created_at").toLocalDateTime()
+                rs.getTimestamp("created_at").toLocalDateTime(),
+                rs.getString("phone_number") // novo campo
         );
     }
 }

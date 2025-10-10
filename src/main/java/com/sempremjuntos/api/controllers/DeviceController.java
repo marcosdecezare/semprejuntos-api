@@ -14,8 +14,9 @@ public class DeviceController {
     @Autowired
     private DeviceStatusService deviceStatusService;
 
-    @GetMapping("/{imei}/status")
-    public Optional<DeviceStatusDTO> getDeviceStatus(@PathVariable String imei) {
-        return deviceStatusService.getLatestStatus(imei);
+    // Agora busca pelo device_id
+    @GetMapping("/{deviceId}/status")
+    public Optional<DeviceStatusDTO> getDeviceStatus(@PathVariable Integer deviceId) {
+        return deviceStatusService.getLatestStatus(deviceId);
     }
 }

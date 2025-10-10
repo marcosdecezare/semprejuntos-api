@@ -15,7 +15,7 @@ public class DeviceStatusRepository {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    public Optional<DeviceStatusDTO> findLatestByImei(String imei) {
+    public Optional<DeviceStatusDTO> findLatestByDeviceId(Integer deviceId) {
         String sql = """
             SELECT 
                 ds.device_id,
@@ -23,14 +23,12 @@ public class DeviceStatusRepository {
                 ds.gsm_signal,
                 ds.last_update
             FROM semprejuntos.device_status ds
-            WHERE ds.device_id = (
-                SELECT d.id FROM semprejuntos.devices d WHERE d.imei = ?
-            )
+            WHERE ds.device_id = ?
             ORDER BY ds.last_update DESC
             LIMIT 1
         """;
 
-        return jdbcTemplate.query(sql, new Object[]{imei}, this::mapRow)
+        return jdbcTemplate.query(sql, new Object[]{deviceId}, this::mapRow)
                 .stream()
                 .findFirst();
     }

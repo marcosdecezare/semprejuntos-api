@@ -13,7 +13,7 @@ public class DeviceStatusService {
     @Autowired
     private DeviceStatusRepository repository;
 
-    public Optional<DeviceStatusDTO> getLatestStatus(String imei) {
-        return repository.findLatestByImei(imei);
+    public Optional<DeviceStatusDTO> getLatestStatus(Integer deviceId) {
+        return repository.findLatestByDeviceId(deviceId);
     }
 }
