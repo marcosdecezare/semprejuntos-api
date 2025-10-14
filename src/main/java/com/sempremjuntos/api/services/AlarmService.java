@@ -13,7 +13,17 @@ public class AlarmService {
     @Autowired
     private AlarmRepository repository;
 
+    /**
+     * Retorna a lista de alarmes de um dispositivo.
+     */
     public List<AlarmDTO> getAlarmsByDevice(Integer deviceId) {
         return repository.findByDeviceId(deviceId);
+    }
+
+    /**
+     * Remove todos os alarmes de um dispositivo específico.
+     */
+    public void clearAlarmsByDevice(Integer deviceId) {
+        repository.deleteByDeviceId(deviceId);
     }
 }

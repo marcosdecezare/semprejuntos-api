@@ -15,6 +15,9 @@ public class AlarmRepository {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    /**
+     * Retorna todos os alarmes associados a um dispositivo, em ordem decrescente de data.
+     */
     public List<AlarmDTO> findByDeviceId(Integer deviceId) {
         String sql = """
             SELECT 
@@ -28,6 +31,14 @@ public class AlarmRepository {
         """;
 
         return jdbcTemplate.query(sql, this::mapRow, deviceId);
+    }
+
+    /**
+     * Remove todos os alarmes de um dispositivo específico.
+     */
+    public void deleteByDeviceId(Integer deviceId) {
+        String sql = "DELETE FROM semprejuntos.alarms WHERE device_id = ?";
+        jdbcTemplate.update(sql, deviceId);
     }
 
     private AlarmDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
