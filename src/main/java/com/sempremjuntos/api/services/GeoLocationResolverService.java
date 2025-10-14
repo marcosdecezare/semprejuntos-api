@@ -1,57 +1,98 @@
 package com.sempremjuntos.api.services;
 
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Serviço responsável por resolver localização (latitude/longitude)
+ * a partir de dados de torres (LBS) ou redes Wi-Fi, usando a Google Geolocation API.
+ *
+ * - Prioriza Google (preciso, cobertura mundial)
+ * - Mantém compatibilidade com Mozilla (opcional, como fallback)
+ */
 @Service
 public class GeoLocationResolverService {
 
+    @Value("${google.api.geolocation.key}")
+    private String googleApiKey;
+
+    private static final String GOOGLE_URL =
+            "https://www.googleapis.com/geolocation/v1/geolocate?key=%s";
+
+    private static final String MOZILLA_URL =
+            "https://location.services.mozilla.com/v1/geolocate?key=test";
+
     private final RestTemplate rest = new RestTemplate();
 
-    @Value("${mls.api.url:https://location.services.mozilla.com/v1/geolocate}")
-    private String apiUrl;
-
-    @Value("${mls.api.key:test}")
-    private String apiKey;
-
-    public static record GeoPoint(double latitude, double longitude, Double accuracyMeters) {}
-
-    public Optional<GeoPoint> resolveLbs(int mcc, int mnc, int lac, int cid, Integer signalStrength) {
-        String url = apiUrl + "?key=" + apiKey;
-
-        Map<String, Object> cell = Map.of(
-                "mobileCountryCode", mcc,
-                "mobileNetworkCode", mnc,
-                "locationAreaCode", lac,
-                "cellId", cid
-        );
-        if (signalStrength != null) {
-            cell = new java.util.HashMap<>(cell);
-            ((java.util.HashMap<String, Object>) cell).put("signalStrength", signalStrength);
-        }
-
-        Map<String, Object> body = Map.of("cellTowers", java.util.List.of(cell));
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
+    /**
+     * Resolve localização via Google API.
+     */
+    public Optional<ResolvedLocation> resolveLbs(Integer mcc, Integer mnc, Integer lac, Integer cid, Integer signalStrength) {
         try {
-            ResponseEntity<Map> resp = rest.exchange(url, HttpMethod.POST, new HttpEntity<>(body, headers), Map.class);
-            Map<String, Object> map = resp.getBody();
-            if (map != null && map.containsKey("location")) {
-                Map<String, Object> loc = (Map<String, Object>) map.get("location");
-                double lat = ((Number) loc.get("lat")).doubleValue();
-                double lon = ((Number) loc.get("lng")).doubleValue();
-                Double acc = map.containsKey("accuracy") ? ((Number) map.get("accuracy")).doubleValue() : null;
-                return Optional.of(new GeoPoint(lat, lon, acc));
+            // Monta JSON de requisição
+            JSONObject payload = new JSONObject();
+            var tower = new JSONObject();
+            tower.put("mobileCountryCode", mcc);
+            tower.put("mobileNetworkCode", mnc);
+            tower.put("locationAreaCode", lac);
+            tower.put("cellId", cid);
+            if (signalStrength != null) {
+                tower.put("signalStrength", signalStrength);
             }
-        } catch (Exception ignored) {}
+            payload.put("cellTowers", new org.json.JSONArray().put(tower));
 
-        return Optional.empty();
+            // Cabeçalhos HTTP
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<String> entity = new HttpEntity<>(payload.toString(), headers);
+
+            // 🔹 1️⃣ Primeira tentativa: Google Geolocation API
+            String url = String.format(GOOGLE_URL, googleApiKey);
+            ResponseEntity<String> response = rest.exchange(url, HttpMethod.POST, entity, String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                JSONObject body = new JSONObject(response.getBody());
+                if (body.has("location")) {
+                    JSONObject loc = body.getJSONObject("location");
+                    double lat = loc.getDouble("lat");
+                    double lon = loc.getDouble("lng");
+                    double accuracy = body.optDouble("accuracy", 0);
+                    System.out.printf("[LBS-GOOGLE] Resolved: lat=%.7f lon=%.7f acc=%.1fm%n", lat, lon, accuracy);
+                    return Optional.of(new ResolvedLocation(lat, lon, accuracy));
+                }
+            }
+
+            // 🔹 2️⃣ Fallback: Mozilla API (opcional)
+            System.out.printf("[LBS-GOOGLE] Google não retornou dados, tentando Mozilla...%n");
+            response = rest.exchange(MOZILLA_URL, HttpMethod.POST, entity, String.class);
+            if (response.getStatusCode().is2xxSuccessful()) {
+                JSONObject body = new JSONObject(response.getBody());
+                if (body.has("location")) {
+                    JSONObject loc = body.getJSONObject("location");
+                    double lat = loc.getDouble("lat");
+                    double lon = loc.getDouble("lng");
+                    double accuracy = body.optDouble("accuracy", 0);
+                    System.out.printf("[LBS-MOZILLA] Resolved: lat=%.7f lon=%.7f acc=%.1fm%n", lat, lon, accuracy);
+                    return Optional.of(new ResolvedLocation(lat, lon, accuracy));
+                }
+            }
+
+            System.out.printf("[LBS] Nenhum provedor retornou coordenadas válidas.%n");
+            return Optional.empty();
+
+        } catch (Exception e) {
+            System.err.printf("[LBS-ERROR] Erro ao resolver LBS: %s%n", e.getMessage());
+            return Optional.empty();
+        }
     }
+
+    /**
+     * DTO simples para resposta resolvida.
+     */
+    public record ResolvedLocation(double latitude, double longitude, double accuracyMeters) {}
 }
