@@ -28,6 +28,7 @@ public class HealthReadingRepository {
             FROM semprejuntos.health_readings
             WHERE device_id = ?
               AND body_temperature IS NOT NULL
+              AND body_temperature > 0 
             ORDER BY created_at DESC
         """;
 

@@ -28,6 +28,7 @@ public class HeartRateRepository {
             FROM semprejuntos.health_readings
             WHERE device_id = ?
               AND heart_rate IS NOT NULL
+              AND heart_rate > 0
             ORDER BY created_at DESC
         """;
 

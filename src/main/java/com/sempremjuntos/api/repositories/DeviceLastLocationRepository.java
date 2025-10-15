@@ -5,16 +5,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 
 /**
- * Repositório responsável por armazenar e recuperar a última localização resolvida
- * (GPS, LBS ou Wi-Fi) de cada dispositivo.
- *
- * Inclui:
- * - Filtro automático de coordenadas inválidas (latitude/longitude = 0)
- * - Cache local para evitar chamadas desnecessárias ao serviço externo
+ * Cache da última localização resolvida (GPS/LBS/WIFI).
+ * - Nunca grava nem retorna (0,0)
+ * - Converte NUMERIC (BigDecimal) para Double ao ler accuracy_m
  */
 @Repository
 public class DeviceLastLocationRepository {
@@ -22,10 +20,6 @@ public class DeviceLastLocationRepository {
     @Autowired
     private JdbcTemplate jdbc;
 
-    /**
-     * Retorna a última localização válida (latitude/longitude diferentes de zero)
-     * armazenada no cache para o device informado.
-     */
     public Optional<LocationDTO> findByDeviceId(Integer deviceId) {
         String sql = """
             SELECT 
@@ -45,12 +39,15 @@ public class DeviceLastLocationRepository {
 
         return jdbc.query(sql, rs -> {
             if (rs.next()) {
+                BigDecimal acc = (BigDecimal) rs.getObject("accuracy_m");
+                Double accuracy = acc != null ? acc.doubleValue() : null;
+
                 return Optional.of(new LocationDTO(
                         rs.getInt("device_id"),
                         rs.getDouble("latitude"),
                         rs.getDouble("longitude"),
                         rs.getString("source"),
-                        (Double) rs.getObject("accuracy_m"),
+                        accuracy,
                         rs.getObject("resolved_at", OffsetDateTime.class)
                 ));
             }
@@ -58,29 +55,15 @@ public class DeviceLastLocationRepository {
         }, deviceId);
     }
 
-    /**
-     * Retorna apenas a assinatura ("signature") do último cache de localização do device.
-     * Exemplo: GPS:12345 ou LBS:724-5-4501-53211
-     */
     public Optional<String> findSignature(Integer deviceId) {
         String sql = """
             SELECT signature
             FROM semprejuntos.device_last_location
             WHERE device_id = ?
         """;
-
-        return jdbc.query(sql, rs -> {
-            if (rs.next()) {
-                return Optional.ofNullable(rs.getString("signature"));
-            }
-            return Optional.empty();
-        }, deviceId);
+        return jdbc.query(sql, rs -> rs.next() ? Optional.ofNullable(rs.getString("signature")) : Optional.empty(), deviceId);
     }
 
-    /**
-     * Atualiza (ou insere) a última localização resolvida do dispositivo.
-     * Evita gravar coordenadas inválidas (latitude/longitude = 0).
-     */
     public void upsert(Integer deviceId,
                        double latitude,
                        double longitude,
@@ -89,7 +72,6 @@ public class DeviceLastLocationRepository {
                        String signature,
                        OffsetDateTime resolvedAt) {
 
-        // 🚫 Ignora gravações inválidas
         if (latitude == 0.0 || longitude == 0.0) {
             System.out.printf("[WARN] Ignorando gravação inválida (0,0) para device_id=%d%n", deviceId);
             return;
@@ -112,10 +94,6 @@ public class DeviceLastLocationRepository {
         jdbc.update(sql, deviceId, latitude, longitude, source, accuracyMeters, signature, resolvedAt);
     }
 
-    /**
-     * Remove do cache qualquer registro inválido (0,0).
-     * Pode ser usado para limpeza periódica via cron ou manutenção manual.
-     */
     public int cleanInvalidRecords() {
         String sql = """
             DELETE FROM semprejuntos.device_last_location

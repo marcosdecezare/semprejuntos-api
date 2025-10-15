@@ -28,6 +28,7 @@ public class OxygenationRepository {
             FROM semprejuntos.health_readings
             WHERE device_id = ?
               AND spo2 IS NOT NULL
+              AND spo2 > 0
             ORDER BY created_at DESC
         """;
 

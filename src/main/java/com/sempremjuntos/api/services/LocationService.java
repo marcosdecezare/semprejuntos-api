@@ -11,9 +11,9 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 
 /**
- * Serviço responsável por obter a localização atual do dispositivo.
- * Prioriza GPS, faz fallback via LBS (resolução com Mozilla Location Service)
- * e utiliza cache local em device_last_location.
+ * Serviço responsável por obter a localização atual de um dispositivo.
+ * Prioriza GPS, faz fallback via LBS (Google Geolocation API) e utiliza cache local.
+ * Retorna um LocationDTO contendo classificação de precisão e descrição amigável.
  */
 @Service
 public class LocationService {
@@ -25,7 +25,7 @@ public class LocationService {
 
     /**
      * Obtém a localização mais recente e válida do dispositivo.
-     * Fluxo: GPS válido → LBS (Mozilla) → Cache.
+     * Fluxo: GPS válido → LBS (Google) → Cache.
      */
     public Optional<LocationDTO> getCurrentLocation(Integer deviceId) {
         try {
@@ -39,21 +39,29 @@ public class LocationService {
                 if (!sig.equals(lastSig)) {
                     System.out.printf("[GPS] Novo registro detectado. Device=%d | ID=%d | lat=%.7f | lon=%.7f%n",
                             gps.deviceId, gps.id, gps.lat, gps.lon);
-                    cacheRepo.upsert(deviceId, gps.lat, gps.lon, "GPS", null, sig, gps.createdAt);
+                    cacheRepo.upsert(deviceId, gps.lat, gps.lon, "GPS", 10.0, sig, gps.createdAt);
                 } else {
                     System.out.printf("[GPS] Nenhuma atualização. Device=%d (assinatura igual)%n", deviceId);
                 }
 
                 var cached = cacheRepo.findByDeviceId(deviceId);
                 if (cached.isPresent()) {
+                    var loc = cached.get();
                     System.out.printf("[GPS] Retornando coordenadas válidas do cache. Device=%d%n", deviceId);
-                    return cached;
+                    return Optional.of(new LocationDTO(
+                            loc.getDeviceId(),
+                            loc.getLatitude(),
+                            loc.getLongitude(),
+                            loc.getSource(),
+                            loc.getAccuracyMeters(),
+                            loc.getTimestamp()
+                    ));
                 }
             } else {
                 System.out.printf("[GPS] Nenhum GPS válido encontrado para device=%d%n", deviceId);
             }
 
-            // 2️⃣ Fallback LBS (usa Mozilla API)
+            // 2️⃣ Fallback LBS (usa Google Geolocation API)
             var lbsOpt = lbsRepo.findLatestLbs(deviceId);
             if (lbsOpt.isPresent()) {
                 var lbs = lbsOpt.get();
@@ -61,20 +69,20 @@ public class LocationService {
                 var lastSig = cacheRepo.findSignature(deviceId).orElse(null);
 
                 if (!sig.equals(lastSig)) {
-                    System.out.printf("[LBS] Tentando resolver via Mozilla. Device=%d | %s%n", deviceId, sig);
+                    System.out.printf("[LBS] Tentando resolver via Google. Device=%d | %s%n", deviceId, sig);
                     var resolved = geo.resolveLbs(lbs.mcc, lbs.mnc, lbs.lac, lbs.cid, lbs.signalStrength);
                     if (resolved.isPresent()) {
                         var p = resolved.get();
                         if (p.latitude() != 0.0 && p.longitude() != 0.0) {
-                            System.out.printf("[LBS] Mozilla retornou lat=%.7f lon=%.7f acc=%.1fm%n",
+                            System.out.printf("[LBS-GOOGLE] Resolved: lat=%.7f lon=%.7f acc=%.1fm%n",
                                     p.latitude(), p.longitude(), p.accuracyMeters());
                             cacheRepo.upsert(deviceId, p.latitude(), p.longitude(),
                                     "LBS", p.accuracyMeters(), sig, OffsetDateTime.now());
                         } else {
-                            System.out.printf("[LBS] Mozilla retornou coordenadas inválidas (0,0). Ignorando.%n");
+                            System.out.printf("[LBS-GOOGLE] Coordenadas inválidas (0,0). Ignorando.%n");
                         }
                     } else {
-                        System.out.printf("[LBS] Mozilla não retornou localização. Device=%d%n", deviceId);
+                        System.out.printf("[LBS-GOOGLE] Nenhuma coordenada retornada. Device=%d%n", deviceId);
                     }
                 } else {
                     System.out.printf("[LBS] Assinatura igual. Usando cache atual. Device=%d%n", deviceId);
@@ -82,8 +90,16 @@ public class LocationService {
 
                 var cached = cacheRepo.findByDeviceId(deviceId);
                 if (cached.isPresent()) {
+                    var loc = cached.get();
                     System.out.printf("[LBS] Retornando coordenadas válidas do cache. Device=%d%n", deviceId);
-                    return cached;
+                    return Optional.of(new LocationDTO(
+                            loc.getDeviceId(),
+                            loc.getLatitude(),
+                            loc.getLongitude(),
+                            loc.getSource(),
+                            loc.getAccuracyMeters(),
+                            loc.getTimestamp()
+                    ));
                 }
             } else {
                 System.out.printf("[LBS] Nenhum registro LBS encontrado para device=%d%n", deviceId);
@@ -92,17 +108,26 @@ public class LocationService {
             // 3️⃣ Último cache válido (quando GPS/LBS não retornam nada)
             var cached = cacheRepo.findByDeviceId(deviceId);
             if (cached.isPresent()) {
-                System.out.printf("[CACHE] Retornando última posição conhecida. Device=%d | Fonte=%s%n",
-                        deviceId, cached.get().getSource());
-                return cached;
+                var loc = cached.get();
+                System.out.printf("[CACHE] Retornando última posição conhecida. Device=%d | Fonte=%s | acc=%.1f%n",
+                        deviceId, loc.getSource(), loc.getAccuracyMeters());
+                return Optional.of(new LocationDTO(
+                        loc.getDeviceId(),
+                        loc.getLatitude(),
+                        loc.getLongitude(),
+                        loc.getSource(),
+                        loc.getAccuracyMeters(),
+                        loc.getTimestamp()
+                ));
             }
 
-            // 4️⃣ Sem nada válido
+            // 4️⃣ Nenhuma localização válida
             System.out.printf("[WARN] Nenhuma localização válida encontrada. Device=%d%n", deviceId);
             return Optional.empty();
 
         } catch (Exception e) {
             System.err.printf("[ERROR] Falha ao obter localização do device=%d: %s%n", deviceId, e.getMessage());
+            e.printStackTrace();
             return Optional.empty();
         }
     }

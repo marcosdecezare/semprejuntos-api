@@ -31,6 +31,8 @@ public class BloodPressureRepository {
             WHERE device_id = ?
               AND systolic_bp IS NOT NULL
               AND diastolic_bp IS NOT NULL
+              AND systolic_bp > 0 
+              AND diastolic_bp > 0 
             ORDER BY created_at DESC
         """;
 
