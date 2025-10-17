@@ -4,7 +4,8 @@ import java.time.OffsetDateTime;
 
 /**
  * DTO para envio da localização ao front-end (FlutterFlow).
- * Inclui classificação de precisão e descrição de origem amigável.
+ * Inclui classificação de precisão, descrição de origem amigável
+ * e campo adicional "latLng" no formato "-23.5558, -46.6396".
  */
 public class LocationDTO {
     private Integer deviceId;
@@ -15,6 +16,7 @@ public class LocationDTO {
     private OffsetDateTime timestamp;
     private String quality;     // HIGH / MEDIUM / LOW
     private String description; // mensagem amigável para o app
+    private String latLng;      // novo campo no formato "lat, lng"
 
     public LocationDTO(Integer deviceId, Double latitude, Double longitude,
                        String source, Double accuracyMeters, OffsetDateTime timestamp) {
@@ -26,6 +28,18 @@ public class LocationDTO {
         this.timestamp = timestamp;
         this.quality = classifyQuality(accuracyMeters);
         this.description = describe(source, this.quality);
+        this.latLng = buildLatLngString(latitude, longitude);
+    }
+
+    /**
+     * Cria o campo "latLng" no formato "lat, lng" (ou null se inválido).
+     */
+    private String buildLatLngString(Double lat, Double lng) {
+        if (lat != null && lng != null && lat != 0.0 && lng != 0.0) {
+            // Usa ponto decimal e separador vírgula com espaço — compatível com FlutterFlow e Google Maps
+            return String.format("%.7f, %.7f", lat, lng);
+        }
+        return null;
     }
 
     private String classifyQuality(Double acc) {
@@ -58,4 +72,5 @@ public class LocationDTO {
     public OffsetDateTime getTimestamp() { return timestamp; }
     public String getQuality() { return quality; }
     public String getDescription() { return description; }
+    public String getLatLng() { return latLng; }
 }
