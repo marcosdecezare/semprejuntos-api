@@ -21,7 +21,8 @@ public class DeviceStatusRepository {
                 ds.device_id,
                 ds.battery_level,
                 ds.gsm_signal,
-                ds.last_update
+                ds.last_update,
+                ds.is_connected
             FROM semprejuntos.device_status ds
             WHERE ds.device_id = ?
             ORDER BY ds.last_update DESC
@@ -34,11 +35,15 @@ public class DeviceStatusRepository {
     }
 
     private DeviceStatusDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
+        // getBoolean retorna false para NULL; se quiser tratar NULL diferente, pode usar rs.wasNull()
+        boolean isConnected = rs.getBoolean("is_connected");
+
         return new DeviceStatusDTO(
                 rs.getInt("device_id"),
                 rs.getInt("battery_level"),
                 rs.getInt("gsm_signal"),
-                rs.getTimestamp("last_update").toLocalDateTime()
+                rs.getTimestamp("last_update").toLocalDateTime(),
+                isConnected
         );
     }
 }
