@@ -51,6 +51,8 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
+                        // Imagens de pacientes (arquivos estáticos) liberadas
+                        .requestMatchers("/patients/**").permitAll()
                         // Login e registro liberados
                         .requestMatchers("/api/login", "/api/users/register").permitAll()
                         // Demais rotas exigem autenticação JWT
