@@ -16,7 +16,8 @@ public class PatientPhotoStorageService {
     @Value("${app.uploads.base-path:/opt/semprejuntos/uploads}")
     private String uploadsBasePath;
 
-    @Value("${app.uploads.base-url:http://163.176.178.73:8080}")
+    // Agora o default já aponta para o domínio HTTPS
+    @Value("${app.uploads.base-url:https://api.semprejunttos.com.br}")
     private String uploadsBaseUrl;
 
     /**
@@ -42,8 +43,9 @@ public class PatientPhotoStorageService {
         // Salvar arquivo no disco
         Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
 
-        // Construir URL pública
-        return uploadsBaseUrl + "/patients/" + fileName;
+        // Construir URL pública (normalizando barra final)
+        String base = normalizeBaseUrl(uploadsBaseUrl);
+        return base + "/patients/" + fileName;
     }
 
     private String extractExtension(String originalName) {
@@ -61,5 +63,19 @@ public class PatientPhotoStorageService {
         // fallback caso seja algo inesperado
         int dot = lower.lastIndexOf(".");
         return dot >= 0 ? lower.substring(dot) : ".jpg";
+    }
+
+    /**
+     * Remove barra no final se o base-url vier com "/"
+     * para evitar "//patients/..."
+     */
+    private String normalizeBaseUrl(String url) {
+        if (url == null) {
+            return "";
+        }
+        if (url.endsWith("/")) {
+            return url.substring(0, url.length() - 1);
+        }
+        return url;
     }
 }
