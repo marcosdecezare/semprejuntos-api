@@ -28,4 +28,12 @@ public class UserService {
         String hashed = passwordEncoder.encode(password);
         repository.save(fullName, email, hashed);
     }
+
+    // NOVO MÉTODO GENÉRICO
+    public void updateUser(Integer userId,
+                           String fullName,
+                           String phoneNumber,
+                           String fcmToken) {
+        repository.updateUser(userId, fullName, phoneNumber, fcmToken);
+    }
 }
