@@ -29,39 +29,55 @@ public class LocationService {
      */
     public Optional<LocationDTO> getCurrentLocation(Integer deviceId) {
         try {
-            // 1️⃣ GPS válido (latitude/longitude ≠ 0)
+            // 1️⃣ GPS válido (latitude/longitude ≠ 0), mas desconsiderando GPS muito antigo
             var gpsOpt = gpsRepo.findLatestValidGps(deviceId);
             if (gpsOpt.isPresent()) {
                 var gps = gpsOpt.get();
-                var sig = "GPS:" + gps.id;
-                var lastSig = cacheRepo.findSignature(deviceId).orElse(null);
 
-                if (!sig.equals(lastSig)) {
-                    System.out.printf("[GPS] Novo registro detectado. Device=%d | ID=%d | lat=%.7f | lon=%.7f%n",
-                            gps.deviceId, gps.id, gps.lat, gps.lon);
-                    cacheRepo.upsert(deviceId, gps.lat, gps.lon, "GPS", 10.0, sig, gps.createdAt);
+                // Limite de "frescura" do GPS: 5 minutos
+                var now = OffsetDateTime.now();
+                long gpsMaxAgeMinutes = 5L;
+
+                if (gps.createdAt.isBefore(now.minusMinutes(gpsMaxAgeMinutes))) {
+                    // GPS é válido, mas muito antigo → não usa, cai para LBS
+                    System.out.printf(
+                            "[GPS] Último GPS válido muito antigo para device=%d. created_at=%s, now=%s, limite=%d min%n",
+                            deviceId, gps.createdAt, now, gpsMaxAgeMinutes
+                    );
                 } else {
-                    System.out.printf("[GPS] Nenhuma atualização. Device=%d (assinatura igual)%n", deviceId);
-                }
+                    // GPS ainda é recente → mantém comportamento atual
+                    var sig = "GPS:" + gps.id;
+                    var lastSig = cacheRepo.findSignature(deviceId).orElse(null);
 
-                var cached = cacheRepo.findByDeviceId(deviceId);
-                if (cached.isPresent()) {
-                    var loc = cached.get();
-                    System.out.printf("[GPS] Retornando coordenadas válidas do cache. Device=%d%n", deviceId);
-                    return Optional.of(new LocationDTO(
-                            loc.getDeviceId(),
-                            loc.getLatitude(),
-                            loc.getLongitude(),
-                            loc.getSource(),
-                            loc.getAccuracyMeters(),
-                            loc.getTimestamp()
-                    ));
+                    if (!sig.equals(lastSig)) {
+                        System.out.printf("[GPS] Novo registro detectado. Device=%d | ID=%d | lat=%.7f | lon=%.7f | created_at=%s%n",
+                                gps.deviceId, gps.id, gps.lat, gps.lon, gps.createdAt);
+                        cacheRepo.upsert(deviceId, gps.lat, gps.lon, "GPS", 10.0, sig, gps.createdAt);
+                    } else {
+                        System.out.printf("[GPS] Nenhuma atualização. Device=%d (assinatura igual) | last_created_at=%s%n",
+                                deviceId, gps.createdAt);
+                    }
+
+                    var cached = cacheRepo.findByDeviceId(deviceId);
+                    if (cached.isPresent()) {
+                        var loc = cached.get();
+                        System.out.printf("[GPS] Retornando coordenadas válidas do cache. Device=%d | resolved_at=%s%n",
+                                deviceId, loc.getTimestamp());
+                        return Optional.of(new LocationDTO(
+                                loc.getDeviceId(),
+                                loc.getLatitude(),
+                                loc.getLongitude(),
+                                loc.getSource(),
+                                loc.getAccuracyMeters(),
+                                loc.getTimestamp()
+                        ));
+                    }
                 }
             } else {
                 System.out.printf("[GPS] Nenhum GPS válido encontrado para device=%d%n", deviceId);
             }
 
-            // 2️⃣ Fallback LBS (usa Google Geolocation API)
+            // 2️⃣ Fallback LBS (usa Google Geolocation API) — permanece igual
             var lbsOpt = lbsRepo.findLatestLbs(deviceId);
             if (lbsOpt.isPresent()) {
                 var lbs = lbsOpt.get();
@@ -69,7 +85,8 @@ public class LocationService {
                 var lastSig = cacheRepo.findSignature(deviceId).orElse(null);
 
                 if (!sig.equals(lastSig)) {
-                    System.out.printf("[LBS] Tentando resolver via Google. Device=%d | %s%n", deviceId, sig);
+                    System.out.printf("[LBS] Tentando resolver via Google. Device=%d | %s | created_at=%s%n",
+                            deviceId, sig, lbs.createdAt);
                     var resolved = geo.resolveLbs(lbs.mcc, lbs.mnc, lbs.lac, lbs.cid, lbs.signalStrength);
                     if (resolved.isPresent()) {
                         var p = resolved.get();
@@ -91,7 +108,8 @@ public class LocationService {
                 var cached = cacheRepo.findByDeviceId(deviceId);
                 if (cached.isPresent()) {
                     var loc = cached.get();
-                    System.out.printf("[LBS] Retornando coordenadas válidas do cache. Device=%d%n", deviceId);
+                    System.out.printf("[LBS] Retornando coordenadas válidas do cache. Device=%d | resolved_at=%s%n",
+                            deviceId, loc.getTimestamp());
                     return Optional.of(new LocationDTO(
                             loc.getDeviceId(),
                             loc.getLatitude(),
@@ -109,8 +127,8 @@ public class LocationService {
             var cached = cacheRepo.findByDeviceId(deviceId);
             if (cached.isPresent()) {
                 var loc = cached.get();
-                System.out.printf("[CACHE] Retornando última posição conhecida. Device=%d | Fonte=%s | acc=%.1f%n",
-                        deviceId, loc.getSource(), loc.getAccuracyMeters());
+                System.out.printf("[CACHE] Retornando última posição conhecida. Device=%d | Fonte=%s | acc=%.1f | resolved_at=%s%n",
+                        deviceId, loc.getSource(), loc.getAccuracyMeters(), loc.getTimestamp());
                 return Optional.of(new LocationDTO(
                         loc.getDeviceId(),
                         loc.getLatitude(),
@@ -131,4 +149,6 @@ public class LocationService {
             return Optional.empty();
         }
     }
+
+
 }
