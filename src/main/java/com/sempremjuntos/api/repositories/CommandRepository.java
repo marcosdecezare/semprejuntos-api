@@ -14,7 +14,7 @@ public class CommandRepository {
     private JdbcTemplate jdbcTemplate;
 
     /**
-     * Insere um comando pendente na tabela semprejuntos.command_buffer.
+     * Insere um comando pendente na tabela command_buffer.
      *
      * @param deviceId    id do dispositivo
      * @param commandType tipo do comando (ex.: BPXT, REBOOT, SOSCFG, etc)
@@ -22,7 +22,7 @@ public class CommandRepository {
      */
     public int insertPendingCommand(Integer deviceId, String commandType) {
         String sql = """
-            INSERT INTO semprejuntos.command_buffer (device_id, command_type, status)
+            INSERT INTO command_buffer (device_id, command_type, status)
             VALUES (?, ?, 'PENDING')
         """;
         return jdbcTemplate.update(sql, deviceId, commandType);

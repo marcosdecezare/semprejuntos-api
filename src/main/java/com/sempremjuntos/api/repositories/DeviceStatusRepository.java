@@ -23,7 +23,7 @@ public class DeviceStatusRepository {
                 ds.gsm_signal,
                 ds.last_update,
                 ds.is_connected
-            FROM semprejuntos.device_status ds
+            FROM device_status ds
             WHERE ds.device_id = ?
             ORDER BY ds.last_update DESC
             LIMIT 1

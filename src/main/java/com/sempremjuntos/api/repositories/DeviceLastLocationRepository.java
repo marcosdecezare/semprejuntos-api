@@ -29,7 +29,7 @@ public class DeviceLastLocationRepository {
                 source,
                 accuracy_m,
                 resolved_at
-            FROM semprejuntos.device_last_location
+            FROM device_last_location
             WHERE device_id = ?
               AND latitude IS NOT NULL
               AND longitude IS NOT NULL
@@ -58,7 +58,7 @@ public class DeviceLastLocationRepository {
     public Optional<String> findSignature(Integer deviceId) {
         String sql = """
             SELECT signature
-            FROM semprejuntos.device_last_location
+            FROM device_last_location
             WHERE device_id = ?
         """;
         return jdbc.query(sql, rs -> rs.next() ? Optional.ofNullable(rs.getString("signature")) : Optional.empty(), deviceId);
@@ -78,7 +78,7 @@ public class DeviceLastLocationRepository {
         }
 
         String sql = """
-            INSERT INTO semprejuntos.device_last_location
+            INSERT INTO device_last_location
                 (device_id, latitude, longitude, source, accuracy_m, signature, resolved_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, now())
             ON CONFLICT (device_id) DO UPDATE SET
@@ -96,7 +96,7 @@ public class DeviceLastLocationRepository {
 
     public int cleanInvalidRecords() {
         String sql = """
-            DELETE FROM semprejuntos.device_last_location
+            DELETE FROM device_last_location
             WHERE latitude = 0 OR longitude = 0
         """;
         return jdbc.update(sql);

@@ -27,7 +27,7 @@ public class LocationReadingsRepository {
     public Optional<GpsRow> findLatestValidGps(Integer deviceId) {
         String sql = """
           SELECT id, device_id, latitude, longitude, created_at
-          FROM semprejuntos.location_readings
+          FROM location_readings
           WHERE device_id = ?
             AND latitude IS NOT NULL AND longitude IS NOT NULL
             AND latitude <> 0 AND longitude <> 0

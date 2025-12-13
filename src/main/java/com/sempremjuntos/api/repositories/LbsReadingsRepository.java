@@ -28,7 +28,7 @@ public class LbsReadingsRepository {
     public Optional<LbsRow> findLatestLbs(Integer deviceId) {
         String sql = """
           SELECT device_id, mcc, mnc, lac, cid, signal_strength, created_at
-          FROM semprejuntos.lbs_readings
+          FROM lbs_readings
           WHERE device_id = ?
           ORDER BY created_at DESC
           LIMIT 1

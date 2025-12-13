@@ -25,7 +25,7 @@ public class AlarmRepository {
                 device_id,
                 alarm_type,
                 triggered_at
-            FROM semprejuntos.alarms
+            FROM alarms
             WHERE device_id = ?
             ORDER BY triggered_at DESC
         """;
@@ -37,7 +37,7 @@ public class AlarmRepository {
      * Remove todos os alarmes de um dispositivo específico.
      */
     public void deleteByDeviceId(Integer deviceId) {
-        String sql = "DELETE FROM semprejuntos.alarms WHERE device_id = ?";
+        String sql = "DELETE FROM alarms WHERE device_id = ?";
         jdbcTemplate.update(sql, deviceId);
     }
 

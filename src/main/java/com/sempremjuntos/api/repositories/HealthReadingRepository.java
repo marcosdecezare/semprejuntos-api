@@ -25,7 +25,7 @@ public class HealthReadingRepository {
                 device_id,
                 body_temperature,
                 created_at
-            FROM semprejuntos.health_readings
+            FROM health_readings
             WHERE device_id = ?
               AND body_temperature IS NOT NULL
               AND body_temperature > 0 

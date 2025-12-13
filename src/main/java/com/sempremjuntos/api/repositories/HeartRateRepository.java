@@ -25,7 +25,7 @@ public class HeartRateRepository {
                 device_id,
                 heart_rate,
                 created_at
-            FROM semprejuntos.health_readings
+            FROM health_readings
             WHERE device_id = ?
               AND heart_rate IS NOT NULL
               AND heart_rate > 0

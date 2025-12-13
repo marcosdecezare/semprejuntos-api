@@ -27,8 +27,8 @@ public class UserDeviceRepository {
                 d.sos_number2,
                 d.sos_number3,
                 d.created_at
-            FROM semprejuntos.user_devices ud
-            JOIN semprejuntos.devices d ON d.id = ud.device_id
+            FROM user_devices ud
+            JOIN devices d ON d.id = ud.device_id
             WHERE ud.user_id = ?
             ORDER BY d.name ASC
         """;

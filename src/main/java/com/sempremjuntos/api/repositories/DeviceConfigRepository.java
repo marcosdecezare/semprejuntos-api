@@ -34,7 +34,7 @@ public class DeviceConfigRepository {
                 d.heart_auto_test_enabled,
                 d.heart_auto_test_interval_minutes,
                 d.created_at
-            FROM semprejuntos.devices d
+            FROM devices d
             WHERE d.id = ?
             LIMIT 1
         """;
@@ -69,7 +69,7 @@ public class DeviceConfigRepository {
 
     public int updateConfig(Integer deviceId, DeviceConfigUpdateRequest req) {
         String sql = """
-            UPDATE semprejuntos.devices
+            UPDATE devices
             SET
                 imei                          = COALESCE(?, imei),
                 name                          = COALESCE(?, name),

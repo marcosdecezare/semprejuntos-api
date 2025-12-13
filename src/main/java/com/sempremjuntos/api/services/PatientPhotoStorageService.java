@@ -13,7 +13,7 @@ import java.nio.file.StandardCopyOption;
 @Service
 public class PatientPhotoStorageService {
 
-    @Value("${app.uploads.base-path:/opt/semprejuntos/uploads}")
+    @Value("${app.uploads.base-path:/opt/semprejunttos/uploads}")
     private String uploadsBasePath;
 
     // Agora o default já aponta para o domínio HTTPS

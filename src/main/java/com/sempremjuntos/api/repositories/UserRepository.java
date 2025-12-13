@@ -18,7 +18,7 @@ public class UserRepository {
     public Optional<User> findByEmail(String email) {
         String sql = """
             SELECT id, full_name, email, password_hash, phone_number, role, created_at, fcm_token
-            FROM semprejuntos.users
+            FROM users
             WHERE email = ?
             """;
 
@@ -30,7 +30,7 @@ public class UserRepository {
 
     public void save(String fullName, String email, String passwordHash) {
         String sql = """
-            INSERT INTO semprejuntos.users (full_name, email, password_hash, role, created_at)
+            INSERT INTO users (full_name, email, password_hash, role, created_at)
             VALUES (?, ?, ?, 'USER', NOW())
             """;
         jdbcTemplate.update(sql, fullName, email, passwordHash);
@@ -46,7 +46,7 @@ public class UserRepository {
                            String phoneNumber,
                            String fcmToken) {
         String sql = """
-            UPDATE semprejuntos.users
+            UPDATE users
             SET
               full_name   = COALESCE(?, full_name),
               phone_number = COALESCE(?, phone_number),

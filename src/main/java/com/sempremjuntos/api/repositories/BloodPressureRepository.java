@@ -27,7 +27,7 @@ public class BloodPressureRepository {
                 systolic_bp,
                 diastolic_bp,
                 created_at
-            FROM semprejuntos.health_readings
+            FROM health_readings
             WHERE device_id = ?
               AND systolic_bp IS NOT NULL
               AND diastolic_bp IS NOT NULL

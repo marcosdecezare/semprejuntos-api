@@ -25,7 +25,7 @@ public class OxygenationRepository {
                 device_id,
                 spo2,
                 created_at
-            FROM semprejuntos.health_readings
+            FROM health_readings
             WHERE device_id = ?
               AND spo2 IS NOT NULL
               AND spo2 > 0
