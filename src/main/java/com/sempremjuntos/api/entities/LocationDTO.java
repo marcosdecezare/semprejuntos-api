@@ -66,6 +66,27 @@ public class LocationDTO {
         this.latLng = buildLatLngString(latitude, longitude);
     }
 
+    public LocationDTO(Integer deviceId,
+                       Double latitude,
+                       Double longitude,
+                       String source,
+                       Double accuracyMeters,
+                       OffsetDateTime timestamp,
+                       String descriptionOverride) {
+
+        this.deviceId = deviceId;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.source = source;
+        this.accuracyMeters = accuracyMeters;
+        this.timestamp = formatTimestamp(timestamp);
+        this.quality = classifyQuality(accuracyMeters);
+        this.description = (descriptionOverride != null && !descriptionOverride.isBlank())
+                ? descriptionOverride
+                : buildDescription(source, this.quality);
+        this.latLng = buildLatLngString(latitude, longitude);
+    }
+
     /**
      * Converte o OffsetDateTime para string DD-MM-YYYY HH:mm no fuso de São Paulo.
      */

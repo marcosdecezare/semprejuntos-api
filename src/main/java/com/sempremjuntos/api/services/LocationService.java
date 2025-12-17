@@ -29,6 +29,7 @@ public class LocationService {
      * Fluxo: GPS válido → LBS (Google) → Cache.
      */
 
+    /**
     public Optional<LocationDTO> getCurrentLocation(Integer deviceId) {
         try {
             // 1️⃣ GPS válido (latitude/longitude ≠ 0), mas desconsiderando GPS muito antigo (> 5 min)
@@ -169,6 +170,52 @@ public class LocationService {
             e.printStackTrace();
             return Optional.empty();
         }
+    }*/
+
+    public Optional<LocationDTO> getCurrentLocation(Integer deviceId) {
+        try {
+            int gpsMaxAgeMinutes = 5;
+
+            // 1) GPS recente
+            var gpsRecentOpt = gpsRepo.findLatestValidGpsRecent(deviceId, gpsMaxAgeMinutes);
+            if (gpsRecentOpt.isPresent()) {
+                var gps = gpsRecentOpt.get();
+
+                // opcional: manter cache, mas SOMENTE GPS
+                cacheRepo.upsert(deviceId, gps.lat, gps.lon, "GPS", 10.0, "GPS:" + gps.id, gps.createdAt);
+
+                return Optional.of(new LocationDTO(
+                        gps.deviceId, gps.lat, gps.lon, "GPS", 10.0, gps.createdAt
+                ));
+            }
+
+            // 2) Último GPS válido (mesmo antigo) + descrição explícita
+            var gpsAnyOpt = gpsRepo.findLatestValidGps(deviceId);
+            if (gpsAnyOpt.isPresent()) {
+                var gps = gpsAnyOpt.get();
+
+                var now = OffsetDateTime.now();
+                long minutesOld = java.time.Duration.between(gps.createdAt, now).toMinutes();
+
+                String desc = String.format("Última posição conhecida (GPS) — atualizada há %d min", minutesOld);
+
+                // opcional: atualizar cache com GPS (mesmo antigo), se você quiser padronizar
+                cacheRepo.upsert(deviceId, gps.lat, gps.lon, "GPS", 10.0, "GPS:" + gps.id, gps.createdAt);
+
+                return Optional.of(new LocationDTO(
+                        gps.deviceId, gps.lat, gps.lon, "GPS", 10.0, gps.createdAt, desc
+                ));
+            }
+
+            // 3) Nunca teve GPS
+            return Optional.empty(); // Controller devolve 204
+
+        } catch (Exception e) {
+            System.err.printf("[ERROR] Falha ao obter localização do device=%d: %s%n", deviceId, e.getMessage());
+            e.printStackTrace();
+            return Optional.empty();
+        }
     }
+
 
 }
