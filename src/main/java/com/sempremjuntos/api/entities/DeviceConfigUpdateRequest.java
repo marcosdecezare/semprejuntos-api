@@ -15,6 +15,7 @@ public class DeviceConfigUpdateRequest {
     private Integer workingMode;
     private Boolean heartAutoTestEnabled;
     private Integer heartAutoTestIntervalMinutes;
+    private Integer locationReportIntervalMinutes;
 
     public DeviceConfigUpdateRequest() {
         // necessário para desserialização JSON
@@ -58,4 +59,14 @@ public class DeviceConfigUpdateRequest {
 
     public Integer getHeartAutoTestIntervalMinutes() { return heartAutoTestIntervalMinutes; }
     public void setHeartAutoTestIntervalMinutes(Integer heartAutoTestIntervalMinutes) { this.heartAutoTestIntervalMinutes = heartAutoTestIntervalMinutes; }
+
+    public Integer getLocationReportIntervalMinutes() {
+        return locationReportIntervalMinutes;
+    }
+
+    public void setLocationReportIntervalMinutes(Integer locationReportIntervalMinutes) {
+        this.locationReportIntervalMinutes = locationReportIntervalMinutes;
+    }
+
+
 }

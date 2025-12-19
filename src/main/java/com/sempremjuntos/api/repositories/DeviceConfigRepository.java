@@ -33,6 +33,7 @@ public class DeviceConfigRepository {
                 d.working_mode,
                 d.heart_auto_test_enabled,
                 d.heart_auto_test_interval_minutes,
+                d.location_report_interval_minutes,
                 d.created_at
             FROM devices d
             WHERE d.id = ?
@@ -60,6 +61,7 @@ public class DeviceConfigRepository {
                 (Integer) rs.getObject("working_mode"),               // pode ser null
                 (Boolean) rs.getObject("heart_auto_test_enabled"),    // pode ser null
                 (Integer) rs.getObject("heart_auto_test_interval_minutes"),
+                (Integer) rs.getObject("location_report_interval_minutes"),
                 rs.getTimestamp("created_at").toLocalDateTime()
         );
 
@@ -83,7 +85,8 @@ public class DeviceConfigRepository {
                 white_list_enabled            = COALESCE(?, white_list_enabled),
                 working_mode                  = COALESCE(?, working_mode),
                 heart_auto_test_enabled       = COALESCE(?, heart_auto_test_enabled),
-                heart_auto_test_interval_minutes = COALESCE(?, heart_auto_test_interval_minutes)
+                heart_auto_test_interval_minutes = COALESCE(?, heart_auto_test_interval_minutes),
+                location_report_interval_minutes = COALESCE(?, location_report_interval_minutes)
             WHERE id = ?
         """;
 
@@ -101,6 +104,7 @@ public class DeviceConfigRepository {
                 req.getWorkingMode(),
                 req.getHeartAutoTestEnabled(),
                 req.getHeartAutoTestIntervalMinutes(),
+                req.getLocationReportIntervalMinutes(),
                 deviceId
         );
     }

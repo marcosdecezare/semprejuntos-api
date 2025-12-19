@@ -18,6 +18,7 @@ public class DeviceConfigDTO {
     private Boolean heartAutoTestEnabled;
     private Integer heartAutoTestIntervalMinutes;
     private LocalDateTime createdAt;
+    private Integer locationReportIntervalMinutes;
 
     public DeviceConfigDTO(
             Integer id,
@@ -34,6 +35,7 @@ public class DeviceConfigDTO {
             Integer workingMode,
             Boolean heartAutoTestEnabled,
             Integer heartAutoTestIntervalMinutes,
+            Integer locationReportIntervalMinutes,
             LocalDateTime createdAt
     ) {
         this.id = id;
@@ -50,6 +52,7 @@ public class DeviceConfigDTO {
         this.workingMode = workingMode;
         this.heartAutoTestEnabled = heartAutoTestEnabled;
         this.heartAutoTestIntervalMinutes = heartAutoTestIntervalMinutes;
+        this.locationReportIntervalMinutes = locationReportIntervalMinutes;
         this.createdAt = createdAt;
     }
 
@@ -67,5 +70,6 @@ public class DeviceConfigDTO {
     public Integer getWorkingMode() { return workingMode; }
     public Boolean getHeartAutoTestEnabled() { return heartAutoTestEnabled; }
     public Integer getHeartAutoTestIntervalMinutes() { return heartAutoTestIntervalMinutes; }
+    public Integer getLocationReportIntervalMinutes() { return locationReportIntervalMinutes; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 }
